@@ -20,6 +20,7 @@ import os
 import multiprocessing
 import time
 from contextlib import closing
+import ast
 from spline.components.bash import Bash
 from spline.components.docker import Container, Image
 from spline.components.packer import Packer
@@ -101,7 +102,17 @@ class Tasks(object):
             if key in ['python']:
                 entry['type'] = key
 
-            for item in entry['with'] if 'with' in entry else ['']:
+            if 'with' in entry and isinstance(entry['with'], str):
+                rendered_with = ast.literal_eval(render(entry['with'],
+                                                        variables=self.pipeline.variables,
+                                                        model=self.pipeline.model,
+                                                        env=self.get_merged_env(include_os=True)))
+            elif 'with' in entry:
+                rendered_with = entry['with']
+            else:
+                rendered_with = ['']
+
+            for item in rendered_with:
                 shells.append({
                     'id': self.next_task_id,
                     'creator': key,
